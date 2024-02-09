@@ -1,0 +1,100 @@
+---
+title: "STAT3640 - Final Project"
+author: "Michael Loh"
+date: "2024-02-07"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(warn=-1)
+
+df <- read.csv("aggregated.csv") ; df = df[-1,]
+```
+
+## Research Question: Does NVIDIA sentiments move the underlying stock price?
+- If the month's trend roc (rate of change) is positive, the closing price should be higher than the opening price.
+- correlation between average price roc and trend roc.
+
+
+### Displaying the data
+```{r}
+df[0:10,] ; df$idx = seq.int(nrow(df))
+```
+
+### Conducting Pearson Correlation on trend data
+```{r}
+trend = read.csv('TREND.csv')
+cor.test(trend$NASDAQ.NVDA...United.States.,trend$Nvidia...United.States.)$p.value
+cor.test(trend$NASDAQ.NVDA...United.States.,trend$nvidia...United.States.)$p.value
+```
+We decided on $1%$ for $\alpha$ because we want to ensure the data we reduce is as correlated as possible.
+We can see that the Nasdaq NVDA trend and both Nvidia/nvidia do not find significance in our test with p-values ~ 0.03.
+```{r}
+cor.test(trend$nvidia...United.States.,trend$Nvidia...United.States.)$p.value
+```
+However, nvidia and Nvidia produced a p-value below our rejection $\alpha = 0.01$, so we decided to reduce the dimensionality by getting the mean of both columns.
+
+
+## Part I
+$H_0 : C_{avg} = P[corr(T_{roc},Price_{open} - Price_{close} = 0)]$ \
+$H_a : C_{avG} = P[corr(T_{roc},Price_{open} - Price_{close} > 0)]$ if $C_{avg} > \alpha$ \
+
+Let $\alpha = 0.05$, we want to investigate positive relationship between the trend roc and price difference roc.
+
+### Aggregating price_Diff and trend hype into a df
+```{r}
+pricedf = read.csv('OpenClosePrice.csv') ; pricedf = pricedf[-1,] ;
+X = ifelse(pricedf$Open - pricedf$Close < 0, -1, 1 ) ; Y = ifelse(df$nvidia < 0, -1, 1) ;
+sampledf = data.frame(cbind(X, Y)) ; colnames(sampledf) = c("X","Y") ; sampledf$idx = seq.int(nrow(sampledf))
+```
+Because we do not want to investigate the strength of the correlation but just the direction, we set positive/negative values for each data set to a binary.
+
+
+### Pearson Correlation
+```{r}
+relation.pcc = cor.test(sampledf$X,sampledf$Y) ; relation.pcc
+if (relation.pcc$p.value < 0.05) {
+  print("We reject the null hypothesis.")
+  } else {
+  print("We do not have sufficient evidence to reject the null hypothesis.")
+}
+```
+Our correlation test returns a p-value of 0.03524 which is < 0.05.
+
+### Plotting
+```{r}
+plot(sampledf$idx,sampledf$Y, type="l", col="lightblue", xlab="Index (months)", ylab="ROC")
+lines(sampledf$X)
+```
+
+## Part II
+$H_0 : C_{avg} = P[corr(T_{roc},Price_{avg} = 0)]$ \
+$H_a : C_{avg} = P[corr(T_{roc},Price_{avg} > 0)]$ if $C_{avg} > \alpha$ \
+
+Let $\alpha = 0.01$, we want to confirm correlation from Part 1.
+
+### Conducting Pearson Correlation on price-hype data
+```{r}
+cor.pcc = cor.test(df$NVDA.Monthly,df$nvidia) ; cor.pcc
+if (cor.pcc$p.value < 0.01) {
+  print("We reject the null hypothesis.")
+  } else {
+  print("We do not have sufficient evidence to reject the null hypothesis.")
+}
+```
+Our correlation test returns a p-value of 0.009088 which is < 0.01.
+
+### Plotting
+```{r}
+plot(df$idx,df$nvidia, type="l", col="lightblue", xlab="Index (months)", ylab="ROC")
+lines(df$idx,df$NVDA.Monthly)
+```
+
+
+
+
+## Conclusion
+
+We structured the test in Part I to investigate our hypotheses/research question and have sufficient evidence to reject the null hypothesis,
+and show that there is positive relationship between NVDA trend and price change. Furthermore, we structured the test in Part II to verify our claims that there is indeed a correlation even in the raw price change and have sufficient evidence to reject the null hypothesis. In conclusion, we can draw from what we have that NVIDIA sentiments move the underlying stock price, specifically with a high probability of moving in the same direction as the sentiment itself.
